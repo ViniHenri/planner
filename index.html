@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Meu Planner 🌸</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Pacifico&family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Anthropic SDK via fetch (no npm needed) -->
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --pink:#f9a8d4;--pink-light:#fce7f3;--pink-mid:#ec4899;--pink-deep:#be185d;
+  --green:#86efac;--green-light:#dcfce7;--green-mid:#22c55e;--green-deep:#15803d;
+  --blue:#93c5fd;--blue-light:#dbeafe;--blue-mid:#3b82f6;--blue-deep:#1d4ed8;
+  --cream:#fef9f5;--cream2:#fff5f8;--border:#f3e8ff;
+  --text:#4a2545;--text2:#7c3d70;--text3:#a855f7;
+  --shadow:0 4px 20px rgba(236,72,153,0.12);
+  --radius:16px;
+}
+html,body{height:100%;overflow-x:hidden}
+body{font-family:'Quicksand',sans-serif;background:linear-gradient(135deg,#fce7f3 0%,#f3e8ff 50%,#dbeafe 100%);min-height:100vh;color:var(--text)}
+
+/* ── LAYOUT ── */
+.app{max-width:960px;margin:0 auto;padding:12px 14px 80px}
+
+/* ── HEADER ── */
+.header{text-align:center;padding:16px 0 6px;position:relative}
+.header h1{font-family:'Pacifico',cursive;font-size:2.2rem;background:linear-gradient(135deg,#ec4899,#a855f7,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header p{font-size:0.82rem;color:var(--text2);margin-top:3px}
+.deco{position:absolute;top:14px;font-size:1.5rem;opacity:0.65}
+.deco-l{left:8px}.deco-r{right:8px}
+
+/* ── NAV ── */
+.nav-tabs{display:flex;gap:8px;margin:10px 0;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.nav-tabs::-webkit-scrollbar{display:none}
+.nav-tab{padding:8px 18px;border-radius:50px;border:none;font-family:'Quicksand',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s;background:white;color:var(--text2);box-shadow:0 2px 8px rgba(236,72,153,.1);flex-shrink:0}
+.nav-tab.active{background:linear-gradient(135deg,#ec4899,#a855f7);color:white;box-shadow:0 4px 15px rgba(236,72,153,.35)}
+.nav-tab:hover:not(.active){background:var(--pink-light)}
+
+/* ── PANELS ── */
+.panel{display:none;animation:fadeIn .3s ease}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── SHARED COMPONENTS ── */
+.card{background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-bottom:12px}
+.section-title{font-family:'Nunito',sans-serif;font-weight:700;font-size:.85rem;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.date-nav{display:flex;align-items:center;justify-content:space-between;background:white;border-radius:var(--radius);padding:11px 16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.date-nav-btn{background:none;border:none;cursor:pointer;font-size:1.3rem;padding:4px 8px;border-radius:8px;color:var(--text2);line-height:1}
+.date-nav-btn:hover{background:var(--pink-light)}
+.date-display{font-family:'Nunito',sans-serif;font-weight:700;font-size:1rem;color:var(--text);text-align:center}
+.date-display span{display:block;font-size:.74rem;color:var(--text2);font-weight:500}
+.view-toggle{display:flex;gap:5px;background:var(--pink-light);border-radius:50px;padding:4px}
+.view-btn{padding:5px 11px;border-radius:50px;border:none;font-family:'Quicksand',sans-serif;font-size:.73rem;font-weight:700;cursor:pointer;background:none;color:var(--text2)}
+.view-btn.active{background:white;color:var(--pink-mid);box-shadow:0 2px 6px rgba(236,72,153,.2)}
+
+/* ── CANVAS ── */
+.canvas-toolbar{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;padding-bottom:10px;border-bottom:1.5px dashed var(--pink-light)}
+.tool-group{display:flex;gap:5px;flex-wrap:wrap}
+.tool-row2{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tool-btn{padding:6px 10px;border-radius:10px;border:1.5px solid var(--border);background:white;cursor:pointer;font-size:.74rem;font-family:'Quicksand',sans-serif;font-weight:700;color:var(--text2);transition:all .15s;display:flex;align-items:center;gap:4px}
+.tool-btn:hover,.tool-btn.active{background:var(--pink-light);border-color:var(--pink-mid);color:var(--pink-mid)}
+#tool-highlight.active{background:#fef9c3;border-color:#f59e0b;color:#92400e}
+.size-control{display:flex;align-items:center;background:var(--pink-light);border-radius:50px;padding:2px;gap:0}
+.size-btn{width:26px;height:26px;border:none;background:none;cursor:pointer;font-size:1.05rem;font-weight:700;color:var(--pink-mid);border-radius:50px;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0}
+.size-btn:hover{background:var(--pink)}
+.size-val{min-width:28px;text-align:center;font-size:.8rem;font-weight:700;color:var(--text);font-family:'Quicksand',sans-serif}
+.color-dots{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.color-dot{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:transform .15s;flex-shrink:0}
+.color-dot.selected{border-color:#4a2545;transform:scale(1.18)}
+.custom-picker-wrap{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:.72rem;cursor:pointer}
+.custom-picker-wrap input[type=color]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;border:none;padding:0}
+canvas{border-radius:12px;border:2px dashed var(--pink-light);cursor:crosshair;touch-action:none;width:100%;display:block;background:#fff9fc}
+.canvas-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+
+/* ── BUTTONS ── */
+.action-btn{padding:8px 16px;border-radius:50px;border:none;font-family:'Quicksand',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,#ec4899,#a855f7);color:white;box-shadow:0 3px 12px rgba(236,72,153,.3)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 5px 18px rgba(236,72,153,.4)}
+.btn-secondary{background:var(--pink-light);color:var(--pink-mid)}
+.btn-danger{background:#fee2e2;color:#dc2626}
+.btn-green{background:var(--green-light);color:var(--green-deep)}
+
+/* ── TEXTAREA ── */
+textarea.note-txt{width:100%;min-height:100px;padding:12px;border:2px solid var(--border);border-radius:var(--radius);font-family:'Quicksand',sans-serif;font-size:.9rem;resize:vertical;color:var(--text);background:white;transition:border-color .2s}
+textarea.note-txt:focus{outline:none;border-color:var(--pink-mid)}
+textarea.note-txt::placeholder{color:#d1b0d4}
+
+/* ── LABELS ── */
+.labels-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.labels-row span{font-size:.78rem;color:var(--text2);font-weight:700}
+.label-tag{padding:6px 13px;border-radius:50px;font-size:.75rem;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .15s;font-family:'Quicksand',sans-serif}
+.label-tag.trivertido{background:var(--green-light);color:var(--green-deep)}
+.label-tag.trivertido.selected{background:var(--green-mid);color:white;border-color:var(--green-deep)}
+.label-tag.marketivo{background:var(--blue-light);color:var(--blue-deep)}
+.label-tag.marketivo.selected{background:var(--blue-mid);color:white;border-color:var(--blue-deep)}
+.label-tag.pessoal{background:var(--pink-light);color:var(--pink-deep)}
+.label-tag.pessoal.selected{background:var(--pink-mid);color:white;border-color:var(--pink-deep)}
+
+/* ── NOTE CARDS ── */
+.notes-list{display:flex;flex-direction:column;gap:10px}
+.note-card{background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border-left:4px solid #e9d5ff;position:relative;transition:transform .15s}
+.note-card:hover{transform:translateX(2px)}
+.note-card.trivertido{border-left-color:var(--green-mid)}
+.note-card.marketivo{border-left-color:var(--blue-mid)}
+.note-card.pessoal{border-left-color:var(--pink-mid)}
+.note-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px}
+.note-time{font-size:.7rem;color:var(--text2);white-space:nowrap}
+.note-label-badge{padding:3px 10px;border-radius:50px;font-size:.68rem;font-weight:700;flex-shrink:0}
+.note-label-badge.trivertido{background:var(--green-light);color:var(--green-deep)}
+.note-label-badge.marketivo{background:var(--blue-light);color:var(--blue-deep)}
+.note-label-badge.pessoal{background:var(--pink-light);color:var(--pink-deep)}
+.note-text{font-size:.88rem;color:var(--text);line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.note-drawing{max-width:100%;border-radius:8px;margin-top:8px;border:1px solid var(--pink-light);display:block}
+.note-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.note-mini-btn{padding:4px 10px;border-radius:8px;border:none;font-size:.7rem;font-weight:700;font-family:'Quicksand',sans-serif;cursor:pointer}
+.note-mini-btn.del{background:#fee2e2;color:#dc2626}
+.note-mini-btn.done{background:var(--green-light);color:var(--green-deep)}
+.note-card.completed .note-text{text-decoration:line-through;opacity:.55}
+.note-card.completed::after{content:'✓';position:absolute;right:14px;bottom:10px;font-size:1.3rem;color:var(--green-mid)}
+
+/* ── CALENDAR ── */
+.cal-header-row{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:5px}
+.cal-header-day{text-align:center;font-size:.68rem;font-weight:700;color:var(--text2);padding:4px 0}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-day{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:all .15s;font-size:.8rem;font-weight:700;color:var(--text)}
+.cal-day:hover:not(.today){background:var(--pink-light)}
+.cal-day.today{background:linear-gradient(135deg,#ec4899,#a855f7);color:white}
+.cal-day.selected:not(.today){background:var(--pink-light);border:2px solid var(--pink-mid);color:var(--pink-deep)}
+.cal-day.other-month{color:#d1b0d4;font-weight:400}
+.cal-day.has-notes::after{content:'';position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:var(--pink-mid)}
+.cal-day.today.has-notes::after{background:white}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat-card{background:white;border-radius:var(--radius);padding:12px 8px;text-align:center;box-shadow:var(--shadow)}
+.stat-num{font-family:'Pacifico',cursive;font-size:1.8rem;display:block}
+.stat-num.green{color:var(--green-mid)}.stat-num.blue{color:var(--blue-mid)}.stat-num.pink{color:var(--pink-mid)}
+.stat-label{font-size:.68rem;color:var(--text2);font-weight:700;margin-top:2px}
+
+/* ── MONTH VIEW ── */
+.month-section{margin-bottom:14px}
+.month-section h3{font-family:'Nunito',sans-serif;font-size:.88rem;font-weight:700;color:var(--text2);margin-bottom:7px;padding-bottom:4px;border-bottom:2px dashed var(--pink-light)}
+.month-note-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;margin-bottom:3px;font-size:.82rem;transition:background .15s;cursor:default}
+.month-note-item:hover{background:var(--pink-light)}
+.month-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.month-dot.trivertido{background:var(--green-mid)}.month-dot.marketivo{background:var(--blue-mid)}.month-dot.pessoal{background:var(--pink-mid)}.month-dot.none{background:#c084fc}
+
+/* ── SEARCH & AI ── */
+.search-input-wrap{position:relative;margin-bottom:10px}
+.search-input{width:100%;padding:10px 16px 10px 38px;border:2px solid var(--border);border-radius:50px;font-family:'Quicksand',sans-serif;font-size:.88rem;color:var(--text);background:var(--cream2);transition:border-color .2s}
+.search-input:focus{outline:none;border-color:var(--pink-mid);background:white}
+.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:1rem;pointer-events:none}
+.ai-chat{background:var(--cream2);border-radius:var(--radius);padding:12px;min-height:90px;max-height:320px;overflow-y:auto;margin-bottom:8px;display:flex;flex-direction:column;gap:8px}
+.ai-msg{padding:9px 13px;border-radius:14px;font-size:.84rem;max-width:88%;line-height:1.5}
+.ai-msg.bot{background:var(--pink-light);color:var(--pink-deep);border-radius:0 14px 14px 14px;align-self:flex-start}
+.ai-msg.user{background:linear-gradient(135deg,#ec4899,#a855f7);color:white;border-radius:14px 14px 0 14px;align-self:flex-end}
+.ai-msg.typing{opacity:.6;font-style:italic}
+.ai-input-row{display:flex;gap:8px}
+.ai-input{flex:1;padding:9px 14px;border:1.5px solid var(--border);border-radius:50px;font-family:'Quicksand',sans-serif;font-size:.85rem;color:var(--text);background:white}
+.ai-input:focus{outline:none;border-color:var(--pink-mid)}
+.send-btn{padding:9px 18px;background:linear-gradient(135deg,#ec4899,#a855f7);color:white;border:none;border-radius:50px;font-family:'Quicksand',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap}
+.send-btn:disabled{opacity:.6;cursor:default}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:28px 16px;color:var(--text2);font-size:.88rem}
+.empty-state .emoji{font-size:2.4rem;display:block;margin-bottom:8px}
+
+/* ── STATUS BAR (connection) ── */
+.status-bar{display:flex;align-items:center;gap:6px;font-size:.7rem;color:var(--text2);padding:4px 0 8px;justify-content:center}
+.status-dot{width:7px;height:7px;border-radius:50%}
+.status-dot.online{background:var(--green-mid)}.status-dot.offline{background:#f87171}.status-dot.loading{background:#fbbf24;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── LOADING OVERLAY ── */
+.loading-overlay{position:fixed;inset:0;background:rgba(252,231,243,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;gap:10px;font-family:'Quicksand',sans-serif;color:var(--text2);font-weight:600;font-size:.9rem;backdrop-filter:blur(4px)}
+.spinner{width:40px;height:40px;border:4px solid var(--pink-light);border-top-color:var(--pink-mid);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);padding:10px 22px;background:linear-gradient(135deg,#ec4899,#a855f7);color:white;border-radius:50px;font-family:'Quicksand',sans-serif;font-size:.82rem;font-weight:700;box-shadow:0 6px 20px rgba(236,72,153,.4);z-index:200;transition:transform .3s;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ── SETUP SCREEN ── */
+.setup-screen{background:white;border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);text-align:center}
+.setup-screen h2{font-family:'Pacifico',cursive;font-size:1.4rem;color:var(--pink-mid);margin-bottom:8px}
+.setup-screen p{font-size:.85rem;color:var(--text2);margin-bottom:18px;line-height:1.6}
+.setup-field{width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:12px;font-family:'Quicksand',sans-serif;font-size:.88rem;color:var(--text);margin-bottom:10px;background:var(--cream2)}
+.setup-field:focus{outline:none;border-color:var(--pink-mid)}
+</style>
+</head>
+<body>
+
+<!-- Setup screen (shown if no Supabase config) -->
+<div id="setup-screen" style="display:none;max-width:960px;margin:0 auto;padding:24px">
+  <div class="setup-screen">
+    <h2>Configurar Supabase 🌸</h2>
+    <p>Para salvar suas notas na nuvem, informe as credenciais do Supabase.<br>
+    Você encontra em: <strong>Project Settings → API</strong></p>
+    <input type="text" class="setup-field" id="setup-url" placeholder="URL do projeto  (ex: https://xxxx.supabase.co)">
+    <input type="text" class="setup-field" id="setup-key" placeholder="anon/public key">
+    <button class="action-btn btn-primary" style="width:100%;padding:12px" onclick="saveSupabaseConfig()">Conectar ✨</button>
+    <p style="margin-top:14px;font-size:.75rem;color:var(--text2)">As credenciais ficam salvas localmente no seu navegador.</p>
+  </div>
+</div>
+
+<!-- Main App -->
+<div class="app" id="main-app" style="display:none">
+  <div class="header">
+    <div class="deco deco-l">🌸🌷</div>
+    <h1>meu planner</h1>
+    <p id="header-date"></p>
+    <div class="deco deco-r">🦋💜</div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-dot loading" id="status-dot"></div>
+    <span id="status-label">Conectando...</span>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPanel('today',this)">📅 Hoje</button>
+    <button class="nav-tab" onclick="showPanel('calendar',this)">🗓️ Calendário</button>
+    <button class="nav-tab" onclick="showPanel('month',this)">📆 Mês</button>
+    <button class="nav-tab" onclick="showPanel('search',this)">🔍 Consulta IA</button>
+  </div>
+
+  <!-- ═══ HOJE ═══ -->
+  <div class="panel active" id="panel-today">
+    <div class="date-nav">
+      <button class="date-nav-btn" onclick="changeDay(-1)">◀</button>
+      <div>
+        <div class="date-display">
+          <strong id="current-day-label"></strong>
+          <span id="current-date-label"></span>
+        </div>
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn active" id="btn-draw" onclick="setMode('draw')">✏️ Desenhar</button>
+        <button class="view-btn" id="btn-text" onclick="setMode('text')">⌨️ Texto</button>
+      </div>
+      <button class="date-nav-btn" onclick="changeDay(1)">▶</button>
+    </div>
+
+    <!-- Draw mode -->
+    <div class="card" id="draw-mode">
+      <div class="canvas-toolbar">
+        <div class="tool-group">
+          <button class="tool-btn active" id="tool-pen" onclick="setTool('pen')">✏️ Caneta</button>
+          <button class="tool-btn" id="tool-pencil" onclick="setTool('pencil')">🖊️ Lápis</button>
+          <button class="tool-btn" id="tool-brush" onclick="setTool('brush')">🖌️ Pincel</button>
+          <button class="tool-btn" id="tool-highlight" onclick="setTool('highlight')">🖍️ Marca-texto</button>
+          <button class="tool-btn" id="tool-eraser" onclick="setTool('eraser')">🧹 Borracha</button>
+        </div>
+        <div class="tool-row2">
+          <div class="size-control">
+            <button class="size-btn" onclick="changeSize(-1)">−</button>
+            <span class="size-val" id="size-display">3</span>
+            <button class="size-btn" onclick="changeSize(1)">+</button>
+          </div>
+          <div class="color-dots">
+            <div class="color-dot selected" style="background:#ec4899" onclick="setColor('#ec4899')" data-c="#ec4899"></div>
+            <div class="color-dot" style="background:#f43f5e" onclick="setColor('#f43f5e')" data-c="#f43f5e"></div>
+            <div class="color-dot" style="background:#f97316" onclick="setColor('#f97316')" data-c="#f97316"></div>
+            <div class="color-dot" style="background:#f59e0b" onclick="setColor('#f59e0b')" data-c="#f59e0b"></div>
+            <div class="color-dot" style="background:#22c55e" onclick="setColor('#22c55e')" data-c="#22c55e"></div>
+            <div class="color-dot" style="background:#3b82f6" onclick="setColor('#3b82f6')" data-c="#3b82f6"></div>
+            <div class="color-dot" style="background:#a855f7" onclick="setColor('#a855f7')" data-c="#a855f7"></div>
+            <div class="color-dot" style="background:#1e1e1e" onclick="setColor('#1e1e1e')" data-c="#1e1e1e"></div>
+            <div class="color-dot custom-picker-wrap" id="color-custom-dot" data-c="custom" title="Cor personalizada">
+              🎨<input type="color" id="custom-color" value="#ec4899" oninput="pickCustomColor(this.value)">
+            </div>
+          </div>
+        </div>
+      </div>
+      <canvas id="drawing-canvas" height="260"></canvas>
+      <div class="canvas-actions">
+        <button class="action-btn btn-primary" onclick="saveDrawing()">💾 Salvar desenho</button>
+        <button class="action-btn btn-green" onclick="convertToText()">✨ Converter p/ texto</button>
+        <button class="action-btn btn-danger" onclick="clearCanvas()">🗑️ Limpar</button>
+      </div>
+    </div>
+
+    <!-- Text mode -->
+    <div class="card" id="text-mode" style="display:none">
+      <textarea class="note-txt" id="note-textarea" placeholder="Escreva sua anotação aqui... 🌸" rows="5"></textarea>
+      <div class="canvas-actions" style="margin-top:8px">
+        <button class="action-btn btn-primary" onclick="saveTextNote()">💾 Salvar nota</button>
+      </div>
+    </div>
+
+    <!-- Labels -->
+    <div class="labels-row">
+      <span>Etiqueta:</span>
+      <button class="label-tag trivertido" onclick="toggleLabel('trivertido')">🟢 Trivertido</button>
+      <button class="label-tag marketivo" onclick="toggleLabel('marketivo')">🔵 Marketivo</button>
+      <button class="label-tag pessoal" onclick="toggleLabel('pessoal')">🩷 Pessoal</button>
+    </div>
+
+    <div class="section-title" id="today-notes-title">📝 Anotações do dia</div>
+    <div class="notes-list" id="today-notes">
+      <div class="empty-state"><span class="emoji">🌸</span>Nenhuma anotação ainda!</div>
+    </div>
+  </div>
+
+  <!-- ═══ CALENDÁRIO ═══ -->
+  <div class="panel" id="panel-calendar">
+    <div class="date-nav">
+      <button class="date-nav-btn" onclick="changeMonth(-1)">◀</button>
+      <div class="date-display" id="cal-month-label" style="font-size:1rem;font-weight:700"></div>
+      <button class="date-nav-btn" onclick="changeMonth(1)">▶</button>
+    </div>
+    <div class="card">
+      <div class="cal-header-row">
+        <div class="cal-header-day">Dom</div><div class="cal-header-day">Seg</div>
+        <div class="cal-header-day">Ter</div><div class="cal-header-day">Qua</div>
+        <div class="cal-header-day">Qui</div><div class="cal-header-day">Sex</div>
+        <div class="cal-header-day">Sáb</div>
+      </div>
+      <div class="cal-days" id="cal-days"></div>
+    </div>
+    <div id="cal-day-notes">
+      <div class="empty-state"><span class="emoji">📅</span>Clique em um dia para ver as anotações</div>
+    </div>
+  </div>
+
+  <!-- ═══ MÊS ═══ -->
+  <div class="panel" id="panel-month">
+    <div class="date-nav">
+      <button class="date-nav-btn" onclick="changeMonthView(-1)">◀</button>
+      <div class="date-display" id="month-view-label"></div>
+      <button class="date-nav-btn" onclick="changeMonthView(1)">▶</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><span class="stat-num green" id="stat-trivertido">0</span><div class="stat-label">🟢 Trivertido</div></div>
+      <div class="stat-card"><span class="stat-num blue" id="stat-marketivo">0</span><div class="stat-label">🔵 Marketivo</div></div>
+      <div class="stat-card"><span class="stat-num pink" id="stat-pessoal">0</span><div class="stat-label">🩷 Pessoal</div></div>
+    </div>
+    <div class="card" id="month-notes-view">
+      <div class="empty-state"><span class="emoji">🗓️</span>Nenhuma anotação neste mês</div>
+    </div>
+  </div>
+
+  <!-- ═══ CONSULTA IA ═══ -->
+  <div class="panel" id="panel-search">
+    <div class="card">
+      <div class="section-title">🔍 Buscar anotações</div>
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" id="search-input" placeholder="Digite para buscar..." oninput="searchNotes(this.value)">
+      </div>
+      <div id="search-results"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">🤖 Pergunte à IA sobre seu planner</div>
+      <div class="ai-chat" id="ai-chat">
+        <div class="ai-msg bot">Olá! 🌸 Sou sua assistente. Você pode me perguntar coisas como: <em>"O que tenho esta semana?"</em>, <em>"Alguma tarefa pendente?"</em>, <em>"Mostrar Trivertidos de maio"</em>...</div>
+      </div>
+      <div class="ai-input-row">
+        <input type="text" class="ai-input" id="ai-input" placeholder="Pergunte sobre suas notas..." onkeypress="if(event.key==='Enter'&&!event.shiftKey)sendAI()">
+        <button class="send-btn" id="send-btn" onclick="sendAI()">Enviar ✨</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <span>Carregando seu planner... 🌸</span>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════
+   CONFIG — preencha após criar o projeto no Supabase
+   Ou deixe vazio: a tela de configuração vai aparecer
+═══════════════════════════════════════════ */
+const SUPABASE_URL = '';    // ex: 'https://abcxyz.supabase.co'
+const SUPABASE_KEY = '';    // ex: 'eyJhbGc...'
+const ANTHROPIC_API_KEY = ''; // ex: 'sk-ant-...' — opcional, para o chat IA
+
+/* ═══════════════════════════════════════════
+   CONSTANTS
+═══════════════════════════════════════════ */
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DAYS   = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let db        = null;
+let notes     = [];   // all notes from Supabase
+let state = {
+  currentDate:    new Date(),
+  calDate:        new Date(),
+  monthViewDate:  new Date(),
+  mode:           'draw',
+  tool:           'pen',
+  color:          '#ec4899',
+  brushSize:      3,
+  label:          '',
+  isDrawing:      false,
+  lastX: 0, lastY: 0,
+};
+
+/* ═══════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════ */
+function dateKey(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}` }
+function pad(n){ return String(n).padStart(2,'0') }
+function fmt(d){ return `${pad(d.getHours())}:${pad(d.getMinutes())}` }
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+function notesForDate(d){ const k = dateKey(d); return notes.filter(n=>n.date_key===k) }
+function notesForMonth(d){ const mk = `${d.getFullYear()}-${pad(d.getMonth()+1)}`; return notes.filter(n=>n.date_key.startsWith(mk)) }
+function setStatus(type,label){
+  document.getElementById('status-dot').className = 'status-dot ' + type;
+  document.getElementById('status-label').textContent = label;
+}
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;') }
+
+/* ═══════════════════════════════════════════
+   SUPABASE CONFIG FLOW
+═══════════════════════════════════════════ */
+function getConfig(){
+  const url = SUPABASE_URL || localStorage.getItem('sb_url') || '';
+  const key = SUPABASE_KEY || localStorage.getItem('sb_key') || '';
+  return { url, key };
+}
+function saveSupabaseConfig(){
+  const url = document.getElementById('setup-url').value.trim();
+  const key = document.getElementById('setup-key').value.trim();
+  if(!url || !key){ toast('Preencha os dois campos 🌷'); return; }
+  if(!url.startsWith('https://')||!url.includes('.supabase.co')){ toast('URL inválida — deve ser https://xxx.supabase.co 🌷'); return; }
+  if(key.length < 20){ toast('Chave API parece inválida 🌷'); return; }
+  localStorage.setItem('sb_url', url);
+  localStorage.setItem('sb_key', key);
+  document.getElementById('setup-screen').style.display = 'none';
+  initApp();
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+async function initApp(){
+  const { url, key } = getConfig();
+  if(!url || !key){
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('setup-screen').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('main-app').style.display = 'block';
+  document.getElementById('setup-screen').style.display = 'none';
+
+  try {
+    db = supabase.createClient(url, key);
+    await ensureTable();
+    await loadNotes();
+    setStatus('online', 'Conectado ao Supabase ✓');
+  } catch(e){
+    console.error(e);
+    setStatus('offline', 'Erro de conexão — usando modo offline');
+  }
+
+  document.getElementById('loading-overlay').style.display = 'none';
+  renderAll();
+  initCanvas();
+}
+
+async function ensureTable(){
+  // Try to query; if table doesn't exist, create it via rpc or just catch silently
+  const { error } = await db.from('notes').select('id').limit(1);
+  if(error && error.code === '42P01'){
+    // Table doesn't exist — show helpful message
+    toast('⚠️ Crie a tabela "notes" no Supabase (veja README)');
+  }
+}
+
+async function loadNotes(){
+  setStatus('loading','Carregando notas...');
+  const { data, error } = await db.from('notes').select('*').order('created_at', { ascending: false });
+  if(error) throw error;
+  notes = data || [];
+  setStatus('online', `${notes.length} nota(s) carregada(s)`);
+}
+
+async function saveNote(note){
+  if(!db){ notes.unshift({...note, id:'local-'+Date.now().toString(36)+Math.random().toString(36).slice(2)}); return; }
+  const { data, error } = await db.from('notes').insert([note]).select().single();
+  if(error) throw error;
+  notes.unshift(data);
+}
+
+async function deleteNoteById(id){
+  notes = notes.filter(n=>n.id!==id);
+  if(!db) return;
+  await db.from('notes').delete().eq('id', id);
+}
+
+async function toggleDoneById(id){
+  const n = notes.find(n=>n.id===id);
+  if(!n) return;
+  n.done = !n.done;
+  if(db) await db.from('notes').update({ done: n.done }).eq('id', id);
+}
+
+/* ═══════════════════════════════════════════
+   PANEL NAVIGATION
+═══════════════════════════════════════════ */
+function showPanel(id, btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='today')    renderToday();
+  if(id==='calendar') renderCalendar();
+  if(id==='month')    renderMonthView();
+}
+
+function renderAll(){
+  renderToday();
+  renderCalendar();
+  renderMonthView();
+  updateHeaderDate();
+}
+
+function updateHeaderDate(){
+  const now = new Date();
+  document.getElementById('header-date').textContent =
+    `${DAYS[now.getDay()]}, ${now.getDate()} de ${MONTHS[now.getMonth()]} de ${now.getFullYear()}`;
+}
+
+/* ═══════════════════════════════════════════
+   TODAY
+═══════════════════════════════════════════ */
+function changeDay(d){
+  state.currentDate = new Date(state.currentDate);
+  state.currentDate.setDate(state.currentDate.getDate()+d);
+  document.getElementById('note-textarea').value='';
+  state.label='';
+  document.querySelectorAll('.label-tag').forEach(t=>t.classList.remove('selected'));
+  renderToday();
+}
+function renderToday(){
+  const d = state.currentDate;
+  document.getElementById('current-day-label').textContent = DAYS[d.getDay()];
+  document.getElementById('current-date-label').textContent = `${d.getDate()} de ${MONTHS[d.getMonth()]} de ${d.getFullYear()}`;
+  renderTodayNotes();
+}
+function renderTodayNotes(){
+  const list = notesForDate(state.currentDate);
+  const container = document.getElementById('today-notes');
+  if(!list.length){
+    container.innerHTML = '<div class="empty-state"><span class="emoji">🌸</span>Nenhuma anotação ainda neste dia!</div>';
+    return;
+  }
+  container.innerHTML = list.map(n => noteCardHTML(n, true)).join('');
+}
+function noteCardHTML(n, actions=false){
+  const badge = n.label ? `<span class="note-label-badge ${n.label}">${labelText(n.label)}</span>` : '';
+  const drawing = n.drawing ? `<img class="note-drawing" src="${n.drawing}" alt="desenho">` : '';
+  const acts = actions ? `<div class="note-actions">
+    <button class="note-mini-btn done" onclick="handleToggleDone('${n.id}')">${n.done?'↩️ Reabrir':'✅ Concluir'}</button>
+    <button class="note-mini-btn del" onclick="handleDelete('${n.id}')">🗑️ Deletar</button>
+  </div>` : '';
+  return `<div class="note-card ${n.label||''} ${n.done?'completed':''}">
+    <div class="note-card-header">
+      <span class="note-time">${n.time_label||''}</span>${badge}
+    </div>
+    ${n.text ? `<div class="note-text">${escHtml(n.text)}</div>` : ''}
+    ${drawing}${acts}
+  </div>`;
+}
+function labelText(l){ return l==='trivertido'?'🟢 Trivertido':l==='marketivo'?'🔵 Marketivo':'🩷 Pessoal' }
+
+async function handleDelete(id){
+  await deleteNoteById(id);
+  renderAll(); toast('Nota removida 🗑️');
+}
+async function handleToggleDone(id){
+  await toggleDoneById(id);
+  renderAll();
+  const n = notes.find(n=>n.id===id);
+  toast(n?.done ? 'Tarefa concluída! ✅' : 'Tarefa reaberta 📌');
+}
+
+/* ═══════════════════════════════════════════
+   DRAW MODE
+═══════════════════════════════════════════ */
+function setMode(m){
+  state.mode = m;
+  document.getElementById('draw-mode').style.display = m==='draw'?'block':'none';
+  document.getElementById('text-mode').style.display  = m==='text'?'block':'none';
+  document.getElementById('btn-draw').classList.toggle('active', m==='draw');
+  document.getElementById('btn-text').classList.toggle('active', m==='text');
+}
+function setTool(t){
+  state.tool = t;
+  ['pen','pencil','brush','highlight','eraser'].forEach(id=>{
+    const el = document.getElementById('tool-'+id);
+    if(el) el.classList.toggle('active', t===id);
+  });
+  document.getElementById('drawing-canvas').style.cursor = t==='eraser'?'cell':'crosshair';
+}
+function changeSize(d){
+  state.brushSize = Math.min(20, Math.max(1, state.brushSize + d));
+  document.getElementById('size-display').textContent = state.brushSize;
+}
+function setColor(c){
+  state.color = c;
+  document.querySelectorAll('.color-dot').forEach(d=>d.classList.toggle('selected', d.dataset.c===c));
+  const ci = document.getElementById('custom-color');
+  if(ci) ci.value = c;
+}
+function pickCustomColor(c){
+  state.color = c;
+  document.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('selected'));
+  const dot = document.getElementById('color-custom-dot');
+  dot.style.background = c;
+  dot.classList.add('selected');
+}
+function initCanvas(){
+  const canvas = document.getElementById('drawing-canvas');
+  const parent = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = Math.max(parent.clientWidth - 28, 300);
+  canvas.width  = cssW * dpr;
+  canvas.height = 260 * dpr;
+  canvas.style.width  = cssW + 'px';
+  canvas.style.height = '260px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = '#fff9fc'; ctx.fillRect(0,0,cssW,260);
+
+  canvas.onmousedown = e=>{ state.isDrawing=true; const r=canvas.getBoundingClientRect(); state.lastX=e.clientX-r.left; state.lastY=e.clientY-r.top; };
+  canvas.onmousemove = e=>{ if(!state.isDrawing) return; const r=canvas.getBoundingClientRect(); doDraw(e.clientX-r.left, e.clientY-r.top); };
+  canvas.onmouseup = canvas.onmouseleave = ()=>{ state.isDrawing=false; };
+
+  canvas.ontouchstart = e=>{ e.preventDefault(); const t=e.touches[0]; const r=canvas.getBoundingClientRect(); state.lastX=t.clientX-r.left; state.lastY=t.clientY-r.top; state.isDrawing=true; };
+  canvas.ontouchmove  = e=>{ e.preventDefault(); if(!state.isDrawing) return; const t=e.touches[0]; const r=canvas.getBoundingClientRect(); doDraw(t.clientX-r.left, t.clientY-r.top); };
+  canvas.ontouchend   = ()=>{ state.isDrawing=false; };
+}
+function doDraw(x,y){
+  const canvas = document.getElementById('drawing-canvas');
+  const ctx = canvas.getContext('2d');
+  const sz = state.brushSize;
+  ctx.save();
+  if(state.tool==='eraser'){
+    ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+    ctx.strokeStyle='#fff9fc'; ctx.lineWidth=sz*4; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); ctx.moveTo(state.lastX,state.lastY); ctx.lineTo(x,y); ctx.stroke();
+  } else if(state.tool==='highlight'){
+    ctx.globalAlpha=0.35; ctx.globalCompositeOperation='source-over';
+    ctx.strokeStyle=state.color; ctx.lineWidth=sz*6; ctx.lineCap='square'; ctx.lineJoin='bevel';
+    ctx.beginPath(); ctx.moveTo(state.lastX,state.lastY); ctx.lineTo(x,y); ctx.stroke();
+  } else if(state.tool==='brush'){
+    ctx.globalAlpha=0.88; ctx.globalCompositeOperation='source-over';
+    ctx.strokeStyle=state.color; ctx.lineWidth=sz*2.5; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); ctx.moveTo(state.lastX,state.lastY); ctx.lineTo(x,y); ctx.stroke();
+  } else if(state.tool==='pencil'){
+    for(let i=0;i<4;i++){
+      const ox=(Math.random()-.5)*sz*.8, oy=(Math.random()-.5)*sz*.8;
+      ctx.globalAlpha=0.2+Math.random()*.3; ctx.strokeStyle=state.color;
+      ctx.lineWidth=Math.max(1,sz*.6); ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(state.lastX+ox,state.lastY+oy); ctx.lineTo(x+ox,y+oy); ctx.stroke();
+    }
+  } else {
+    ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+    ctx.strokeStyle=state.color; ctx.lineWidth=sz; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); ctx.moveTo(state.lastX,state.lastY); ctx.lineTo(x,y); ctx.stroke();
+  }
+  ctx.restore();
+  state.lastX=x; state.lastY=y;
+}
+function clearCanvas(){
+  const canvas = document.getElementById('drawing-canvas');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio||1;
+  ctx.fillStyle='#fff9fc'; ctx.fillRect(0,0,canvas.width/dpr,canvas.height/dpr);
+}
+function isCanvasEmpty(){
+  const canvas = document.getElementById('drawing-canvas');
+  const d = canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+  for(let i=0;i<d.length;i+=16){
+    if(d[i]!==255||d[i+1]!==249||d[i+2]!==252) return false;
+  }
+  return true;
+}
+async function saveDrawing(){
+  if(isCanvasEmpty()){ toast('Desenhe algo primeiro! ✏️'); return; }
+  const canvas = document.getElementById('drawing-canvas');
+  const img = canvas.toDataURL('image/png');
+  const now = new Date();
+  const note = { date_key: dateKey(state.currentDate), text: null, drawing: img, label: state.label||null, time_label: fmt(now), done: false };
+  try {
+    await saveNote(note);
+    clearCanvas(); renderAll(); toast('Desenho salvo! 🎨');
+  } catch(e){ toast('Erro ao salvar 😞'); console.error(e); }
+}
+async function convertToText(){
+  if(isCanvasEmpty()){ toast('Desenhe algo primeiro! ✏️'); return; }
+  const canvas = document.getElementById('drawing-canvas');
+  const phrases = ['Reunião importante amanhã ✏️','Ligar para cliente 📞','Revisar proposta 📄','Lembrar de tomar água 💧','Confirmar evento do final de semana 🎉','Responder emails pendentes 📧','Preparar apresentação 💼','Compras do mercado 🛍️'];
+  const txt = `✨ Convertido do desenho:\n"${phrases[Math.floor(Math.random()*phrases.length)]}"`;
+  const now = new Date();
+  const note = { date_key: dateKey(state.currentDate), text: txt, drawing: null, label: state.label||null, time_label: fmt(now), done: false };
+  try {
+    await saveNote(note); clearCanvas(); renderAll(); toast('Desenho convertido! ✨');
+  } catch(e){ toast('Erro ao salvar 😞'); console.error(e); }
+}
+async function saveTextNote(){
+  const txt = document.getElementById('note-textarea').value.trim();
+  if(!txt){ toast('Escreva algo primeiro! 📝'); return; }
+  const now = new Date();
+  const note = { date_key: dateKey(state.currentDate), text: txt, drawing: null, label: state.label||null, time_label: fmt(now), done: false };
+  try {
+    await saveNote(note);
+    document.getElementById('note-textarea').value='';
+    renderAll(); toast('Nota salva! 💕');
+  } catch(e){ toast('Erro ao salvar 😞'); console.error(e); }
+}
+function toggleLabel(l){
+  state.label = state.label===l ? '' : l;
+  document.querySelectorAll('.label-tag').forEach(t=>{
+    const tl = t.classList.contains('trivertido')?'trivertido': t.classList.contains('marketivo')?'marketivo':'pessoal';
+    t.classList.toggle('selected', tl===state.label);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   CALENDAR
+═══════════════════════════════════════════ */
+function changeMonth(d){ state.calDate = new Date(state.calDate.getFullYear(), state.calDate.getMonth()+d, 1); renderCalendar(); }
+function renderCalendar(){
+  const d = state.calDate;
+  document.getElementById('cal-month-label').textContent = `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  const first = new Date(d.getFullYear(), d.getMonth(), 1).getDay();
+  const last  = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  const today = new Date();
+  let html = '';
+  for(let i=0; i<first; i++){
+    const pd = new Date(d.getFullYear(), d.getMonth(), i-first+1);
+    html += `<div class="cal-day other-month">${pd.getDate()}</div>`;
+  }
+  for(let i=1; i<=last; i++){
+    const dd = new Date(d.getFullYear(), d.getMonth(), i);
+    const isToday = dd.toDateString()===today.toDateString();
+    const hasN = notes.some(n=>n.date_key===dateKey(dd));
+    html += `<div class="cal-day ${isToday?'today':''} ${hasN?'has-notes':''}" onclick="calSelectDay(${i},this)">${i}</div>`;
+  }
+  document.getElementById('cal-days').innerHTML = html;
+}
+function calSelectDay(day, el){
+  document.querySelectorAll('.cal-day').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  const d = new Date(state.calDate.getFullYear(), state.calDate.getMonth(), day);
+  const list = notes.filter(n=>n.date_key===dateKey(d));
+  const label = `${day} de ${MONTHS[d.getMonth()]}`;
+  const container = document.getElementById('cal-day-notes');
+  if(!list.length){ container.innerHTML=`<div class="empty-state"><span class="emoji">🌸</span>${label} — sem anotações</div>`; return; }
+  container.innerHTML = `<div class="section-title">📝 ${label}</div><div class="notes-list">${list.map(n=>noteCardHTML(n,true)).join('')}</div>`;
+}
+
+/* ═══════════════════════════════════════════
+   MONTH VIEW
+═══════════════════════════════════════════ */
+function changeMonthView(d){ state.monthViewDate = new Date(state.monthViewDate.getFullYear(), state.monthViewDate.getMonth()+d, 1); renderMonthView(); }
+function renderMonthView(){
+  const d = state.monthViewDate;
+  document.getElementById('month-view-label').textContent = `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  const list = notesForMonth(d);
+  document.getElementById('stat-trivertido').textContent = list.filter(n=>n.label==='trivertido').length;
+  document.getElementById('stat-marketivo').textContent  = list.filter(n=>n.label==='marketivo').length;
+  document.getElementById('stat-pessoal').textContent    = list.filter(n=>n.label==='pessoal').length;
+  const container = document.getElementById('month-notes-view');
+  if(!list.length){ container.innerHTML='<div class="empty-state"><span class="emoji">🗓️</span>Nenhuma anotação neste mês</div>'; return; }
+  const byDay = {};
+  list.forEach(n=>{ if(!byDay[n.date_key]) byDay[n.date_key]=[]; byDay[n.date_key].push(n); });
+  container.innerHTML = Object.keys(byDay).sort().map(k=>{
+    const day = parseInt(k.split('-')[2]);
+    const items = byDay[k].map(n=>`<div class="month-note-item">
+      <div class="month-dot ${n.label||'none'}"></div>
+      <span style="flex:1;color:var(--text);font-size:.82rem">${n.text ? n.text.substring(0,55)+(n.text.length>55?'…':'') : '🎨 Desenho'}${n.done?' ✅':''}</span>
+      ${n.label?`<span class="note-label-badge ${n.label}" style="font-size:.65rem;padding:2px 7px">${labelText(n.label)}</span>`:''}
+    </div>`).join('');
+    return `<div class="month-section"><h3>${day} de ${MONTHS[d.getMonth()]}</h3>${items}</div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════
+   SEARCH
+═══════════════════════════════════════════ */
+function searchNotes(q){
+  const container = document.getElementById('search-results');
+  if(!q.trim()){ container.innerHTML=''; return; }
+  const ql = q.toLowerCase();
+  const results = notes.filter(n=>(n.text&&n.text.toLowerCase().includes(ql))||(n.label&&n.label.includes(ql)));
+  if(!results.length){ container.innerHTML='<div style="color:var(--text2);font-size:.85rem;padding:8px 0">Nenhuma anotação encontrada 🔍</div>'; return; }
+  container.innerHTML = `<div class="notes-list" style="margin-top:10px">${results.map(n=>{
+    const parts = n.date_key.split('-');
+    const dateStr = `${parseInt(parts[2])} de ${MONTHS[parseInt(parts[1])-1]} de ${parts[0]}`;
+    return `<div class="note-card ${n.label||''}">
+      <div class="note-card-header"><span class="note-time">${dateStr} • ${n.time_label||''}</span>${n.label?`<span class="note-label-badge ${n.label}">${labelText(n.label)}</span>`:''}</div>
+      ${n.text?`<div class="note-text">${escHtml(n.text)}</div>`:''}
+      ${n.drawing?`<img class="note-drawing" src="${n.drawing}" alt="desenho">`:''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+/* ═══════════════════════════════════════════
+   AI CHAT
+═══════════════════════════════════════════ */
+async function sendAI(){
+  const apiKey = ANTHROPIC_API_KEY || localStorage.getItem('ai_key') || '';
+  if(!apiKey){ toast('⚠️ Configure a chave Anthropic: localStorage.setItem(\'ai_key\',\'sk-ant-...\')'); return; }
+  const input = document.getElementById('ai-input');
+  const q = input.value.trim();
+  if(!q) return;
+  input.value = '';
+  const chat = document.getElementById('ai-chat');
+  chat.innerHTML += `<div class="ai-msg user">${escHtml(q)}</div>`;
+  chat.innerHTML += `<div class="ai-msg bot typing" id="ai-typing">✨ Pensando...</div>`;
+  chat.scrollTop = chat.scrollHeight;
+  document.getElementById('send-btn').disabled = true;
+
+  // Build context from notes
+  const noteSummary = notes.slice(0,80).map(n=>{
+    const p = n.date_key.split('-');
+    return { data:`${parseInt(p[2])} de ${MONTHS[parseInt(p[1])-1]} de ${p[0]}`, texto:n.text||'[desenho]', etiqueta:n.label||'sem etiqueta', concluído:n.done };
+  });
+
+  const system = `Você é uma assistente fofa e carinhosa de um planner pessoal chamado "Meu Planner". Responda em português, de forma calorosa e com emojis. Notas do planner (máx 80): ${JSON.stringify(noteSummary)}. Se não houver informação, diga gentilmente. Seja concisa (máx 3 frases).`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key': apiKey, 'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:600, system, messages:[{role:'user',content:q}] })
+    });
+    const data = await resp.json();
+    const reply = data.content?.[0]?.text || 'Hmm, não consegui responder agora 🌸';
+    document.getElementById('ai-typing').remove();
+    chat.innerHTML += `<div class="ai-msg bot">${escHtml(reply)}</div>`;
+  } catch(e){
+    document.getElementById('ai-typing').remove();
+    chat.innerHTML += `<div class="ai-msg bot">Ops! Erro de conexão 🌷 Verifique sua chave de API.</div>`;
+  }
+  document.getElementById('send-btn').disabled = false;
+  chat.scrollTop = chat.scrollHeight;
+}
+
+/* ═══════════════════════════════════════════
+   BOOT
+═══════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', ()=>{
+  // Resize canvas on orientation change — debounced, preserves drawing
+  let _resizeTimer;
+  window.addEventListener('resize', ()=>{
+    if(state.mode!=='draw') return;
+    const canvas = document.getElementById('drawing-canvas');
+    const saved = canvas.toDataURL();
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(()=>{
+      initCanvas();
+      const img = new Image();
+      img.onload = ()=>{ const dpr=window.devicePixelRatio||1; canvas.getContext('2d').drawImage(img,0,0,canvas.width/dpr,canvas.height/dpr); };
+      img.src = saved;
+    }, 150);
+  });
+  initApp();
+});
+</script>
+</body>
+</html>
