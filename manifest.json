@@ -1,0 +1,10 @@
+{
+  "name": "Meu Planner 🌸",
+  "short_name": "Planner",
+  "description": "Planner pessoal com notas, desenhos e IA",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fce7f3",
+  "theme_color": "#ec4899",
+  "icons": [{"src":"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23ec4899' rx='22'/%3E%3Ctext y='.85em' font-size='75' x='12'%3E🌸%3C/text%3E%3C/svg%3E","sizes":"any","type":"image/svg+xml"}]
+}
