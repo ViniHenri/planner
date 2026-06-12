@@ -529,6 +529,7 @@ async function initApp(){
     db = supabase.createClient(url, key);
     await ensureTable();
     await loadNotes();
+    subscribeRealtime();
     setStatus('online', 'Conectado ao Supabase ✓');
   } catch(e){
     console.error(e);
@@ -576,6 +577,31 @@ async function setStatusById(id, status){
   n.status = status;
   n.done = status === 'feito';
   if(db) await db.from('notes').update({ status, done: n.done }).eq('id', id);
+}
+
+/* ═══════════════════════════════════════════
+   REALTIME SYNC
+═══════════════════════════════════════════ */
+function subscribeRealtime(){
+  if(!db) return;
+  db.channel('notes-sync')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notes' }, payload => {
+      const n = { ...payload.new, status: payload.new.status || (payload.new.done ? 'feito' : 'a_fazer') };
+      if(!notes.find(x=>x.id===n.id)) { notes.unshift(n); renderAll(); }
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notes' }, payload => {
+      const n = { ...payload.new, status: payload.new.status || (payload.new.done ? 'feito' : 'a_fazer') };
+      const idx = notes.findIndex(x=>x.id===n.id);
+      if(idx>=0){ notes[idx]=n; renderAll(); }
+    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'notes' }, payload => {
+      notes = notes.filter(x=>x.id!==payload.old.id);
+      renderAll();
+    })
+    .subscribe(status => {
+      if(status==='SUBSCRIBED') setStatus('online','Sincronizado em tempo real ✓');
+      if(status==='CLOSED'||status==='CHANNEL_ERROR') setStatus('offline','Sem sincronização em tempo real');
+    });
 }
 
 /* ═══════════════════════════════════════════
