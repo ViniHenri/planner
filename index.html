@@ -542,17 +542,15 @@ async function initApp(){
 }
 
 async function ensureTable(){
-  // Try to query; if table doesn't exist, create it via rpc or just catch silently
-  const { error } = await db.from('notes').select('id').limit(1);
+  const { error } = await db.from('planner_notes').select('id').limit(1);
   if(error && error.code === '42P01'){
-    // Table doesn't exist — show helpful message
-    toast('⚠️ Crie a tabela "notes" no Supabase (veja README)');
+    toast('⚠️ Crie a tabela "planner_notes" no Supabase (veja README)');
   }
 }
 
 async function loadNotes(){
   setStatus('loading','Carregando notas...');
-  const { data, error } = await db.from('notes').select('*').order('created_at', { ascending: false });
+  const { data, error } = await db.from('planner_notes').select('*').order('created_at', { ascending: false });
   if(error) throw error;
   notes = (data || []).map(n => ({ ...n, status: n.status || (n.done ? 'feito' : 'a_fazer') }));
   setStatus('online', `${notes.length} nota(s) carregada(s)`);
@@ -560,7 +558,7 @@ async function loadNotes(){
 
 async function saveNote(note){
   if(!db){ notes.unshift({...note, id:'local-'+Date.now().toString(36)+Math.random().toString(36).slice(2)}); return; }
-  const { data, error } = await db.from('notes').insert([note]).select().single();
+  const { data, error } = await db.from('planner_notes').insert([note]).select().single();
   if(error) throw error;
   notes.unshift(data);
 }
@@ -568,7 +566,7 @@ async function saveNote(note){
 async function deleteNoteById(id){
   notes = notes.filter(n=>n.id!==id);
   if(!db) return;
-  await db.from('notes').delete().eq('id', id);
+  await db.from('planner_notes').delete().eq('id', id);
 }
 
 async function setStatusById(id, status){
@@ -576,7 +574,7 @@ async function setStatusById(id, status){
   if(!n) return;
   n.status = status;
   n.done = status === 'feito';
-  if(db) await db.from('notes').update({ status, done: n.done }).eq('id', id);
+  if(db) await db.from('planner_notes').update({ status, done: n.done }).eq('id', id);
 }
 
 /* ═══════════════════════════════════════════
@@ -584,17 +582,17 @@ async function setStatusById(id, status){
 ═══════════════════════════════════════════ */
 function subscribeRealtime(){
   if(!db) return;
-  db.channel('notes-sync')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notes' }, payload => {
+  db.channel('planner-notes-sync')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'planner_notes' }, payload => {
       const n = { ...payload.new, status: payload.new.status || (payload.new.done ? 'feito' : 'a_fazer') };
       if(!notes.find(x=>x.id===n.id)) { notes.unshift(n); renderAll(); }
     })
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notes' }, payload => {
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'planner_notes' }, payload => {
       const n = { ...payload.new, status: payload.new.status || (payload.new.done ? 'feito' : 'a_fazer') };
       const idx = notes.findIndex(x=>x.id===n.id);
       if(idx>=0){ notes[idx]=n; renderAll(); }
     })
-    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'notes' }, payload => {
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'planner_notes' }, payload => {
       notes = notes.filter(x=>x.id!==payload.old.id);
       renderAll();
     })
