@@ -147,24 +147,40 @@ textarea.note-txt::placeholder{color:#d1b0d4}
 .status-badge.a_fazer{background:#fef3c7;color:#92400e}
 .status-badge.fazendo{background:#dbeafe;color:#1d4ed8}
 .status-badge.feito{background:#dcfce7;color:#15803d}
+.status-badge.parado{background:#f1f5f9;color:#475569}
 .note-card.em-andamento{border-left-color:#3b82f6}
+.note-card.parado{border-left-color:#94a3b8}
 
 /* ── PRIORITY SEMAPHORE ── */
 .priority-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
 .priority-row>span{font-size:.78rem;color:var(--text2);font-weight:700;white-space:nowrap}
 .priority-btn{padding:6px 13px;border-radius:50px;font-size:.75rem;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .15s;font-family:'Quicksand',sans-serif}
-.priority-btn.atencao{background:var(--red-light);color:var(--red-deep)}
-.priority-btn.atencao.selected{background:var(--red-mid);color:white;border-color:var(--red-deep)}
-.priority-btn.regular{background:var(--yellow-light);color:var(--yellow-deep)}
-.priority-btn.regular.selected{background:var(--yellow-mid);color:white;border-color:var(--yellow-deep)}
-.priority-btn.otimo{background:var(--green-light);color:var(--green-deep)}
-.priority-btn.otimo.selected{background:var(--green-mid);color:white;border-color:var(--green-deep)}
+.priority-btn.critico{background:var(--red-light);color:var(--red-deep)}
+.priority-btn.critico.selected{background:var(--red-mid);color:white;border-color:var(--red-deep)}
+.priority-btn.alta{background:var(--orange-light);color:var(--orange-deep)}
+.priority-btn.alta.selected{background:var(--orange-mid);color:white;border-color:var(--orange-deep)}
+.priority-btn.media{background:var(--yellow-light);color:var(--yellow-deep)}
+.priority-btn.media.selected{background:var(--yellow-mid);color:white;border-color:var(--yellow-deep)}
+.priority-btn.baixa{background:var(--green-light);color:var(--green-deep)}
+.priority-btn.baixa.selected{background:var(--green-mid);color:white;border-color:var(--green-deep)}
 .priority-badge{padding:3px 9px;border-radius:50px;font-size:.65rem;font-weight:700;flex-shrink:0;font-family:'Quicksand',sans-serif;border:none;cursor:pointer;transition:all .15s;line-height:1.4}
 .priority-badge:hover{filter:brightness(.88)}
-.priority-badge.atencao{background:var(--red-light);color:var(--red-deep)}
-.priority-badge.regular{background:var(--yellow-light);color:var(--yellow-deep)}
-.priority-badge.otimo{background:var(--green-light);color:var(--green-deep)}
+.priority-badge.critico{background:var(--red-light);color:var(--red-deep)}
+.priority-badge.alta{background:var(--orange-light);color:var(--orange-deep)}
+.priority-badge.media{background:var(--yellow-light);color:var(--yellow-deep)}
+.priority-badge.baixa{background:var(--green-light);color:var(--green-deep)}
 .priority-badge.none{background:var(--gray-light);color:var(--gray-mid)}
+
+/* ── CRONOGRAMA ── */
+.cronograma-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.cronograma-row>span{font-size:.78rem;color:var(--text2);font-weight:700;white-space:nowrap}
+.date-input{padding:5px 10px;border:2px solid var(--border);border-radius:10px;font-family:'Quicksand',sans-serif;font-size:.78rem;color:var(--text);background:white}
+.date-input:focus{outline:none;border-color:var(--pink-mid)}
+.cronograma-badge{font-size:.7rem;color:var(--text2);background:var(--gray-light);padding:3px 9px;border-radius:50px;display:inline-flex;align-items:center;gap:4px}
+
+/* ── ATRASADAS ── */
+.atrasadas-title{font-size:.8rem;font-weight:700;color:#dc2626;margin:10px 0 6px;display:flex;align-items:center;gap:6px}
+.note-card.atrasada{border-left-color:#fca5a5;opacity:.92}
 .note-text{font-size:.88rem;color:var(--text);line-height:1.55;white-space:pre-wrap;word-break:break-word}
 .note-drawing{max-width:100%;border-radius:8px;margin-top:8px;border:1px solid var(--pink-light);display:block}
 .note-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
@@ -310,10 +326,17 @@ textarea.note-txt::placeholder{color:#d1b0d4}
       <button class="label-tag sem_data" data-label="sem_data" onclick="toggleLabel('sem_data')">📭 Sem data</button>
     </div>
     <div class="priority-row">
-      <span>Prazo:</span>
-      <button class="priority-btn atencao" onclick="togglePriority('atencao')">🔴 Atenção</button>
-      <button class="priority-btn regular" onclick="togglePriority('regular')">🟡 Regular</button>
-      <button class="priority-btn otimo" onclick="togglePriority('otimo')">🟢 Ótimo</button>
+      <span>Prioridade:</span>
+      <button class="priority-btn critico" onclick="togglePriority('critico')">🔴 Crítico</button>
+      <button class="priority-btn alta" onclick="togglePriority('alta')">🟠 Alta</button>
+      <button class="priority-btn media" onclick="togglePriority('media')">🟡 Média</button>
+      <button class="priority-btn baixa" onclick="togglePriority('baixa')">🟢 Baixa</button>
+    </div>
+    <div class="cronograma-row">
+      <span>Cronograma:</span>
+      <input type="date" class="date-input" id="start-date" title="Data inicial">
+      <span style="color:var(--text2);font-size:.8rem">→</span>
+      <input type="date" class="date-input" id="end-date" title="Data final">
     </div>
 
     <!-- Draw mode -->
@@ -648,12 +671,25 @@ function renderToday(){
 }
 function renderTodayNotes(){
   const list = notesForDate(state.currentDate);
+  const todayKey = dateKey(state.currentDate);
+  const overdue = notes.filter(n =>
+    n.date_key < todayKey &&
+    n.status !== 'feito' &&
+    n.status !== 'parado'
+  ).map(n => ({...n, overdue: true}));
   const container = document.getElementById('today-notes');
-  if(!list.length){
+  let html = '';
+  if(overdue.length){
+    html += `<div class="atrasadas-title">⏰ Atrasadas (${overdue.length})</div>`;
+    html += overdue.map(n => noteCardHTML(n, true)).join('');
+    html += '<div style="margin:10px 0 6px;border-top:2px dashed var(--pink-light)"></div>';
+  }
+  if(!list.length && !overdue.length){
     container.innerHTML = '<div class="empty-state"><span class="emoji">🌸</span>Nenhuma anotação ainda neste dia!</div>';
     return;
   }
-  container.innerHTML = list.map(n => noteCardHTML(n, true)).join('');
+  html += list.map(n => noteCardHTML(n, true)).join('');
+  container.innerHTML = html;
 }
 function noteCardHTML(n, actions=false){
   const badge = n.label ? `<span class="note-label-badge ${n.label}">${labelText(n.label)}</span>` : '';
@@ -671,12 +707,15 @@ function noteCardHTML(n, actions=false){
     ${statusBadge}${pBadge}
     <button class="note-mini-btn del" onclick="handleDelete('${n.id}')">🗑️ Deletar</button>
   </div>` : `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${statusBadge}${pBadge}</div>`;
-  const cardClass = `note-card ${n.label||''} ${st==='feito'?'completed':''} ${st==='fazendo'?'em-andamento':''}`;
+  const cronograma = (n.start_date || n.end_date)
+    ? `<span class="cronograma-badge">📅 ${n.start_date||'?'} → ${n.end_date||'?'}</span>` : '';
+  const cardClass = `note-card ${n.label||''} ${st==='feito'?'completed':''} ${st==='fazendo'?'em-andamento':''} ${st==='parado'?'parado':''} ${n.overdue?'atrasada':''}`;
   return `<div class="${cardClass}">
     <div class="note-card-header">
-      <span class="note-time">${n.time_label||''}</span>
+      <span class="note-time">${n.overdue?'⏰ '+n.date_key+' • ':''} ${n.time_label||''}</span>
       <div style="display:flex;gap:6px;align-items:center">${badge}</div>
     </div>
+    ${cronograma}
     ${n.text ? `<div class="note-text">${escHtml(n.text)}</div>` : ''}
     ${drawing}${acts}
   </div>`;
@@ -685,10 +724,10 @@ function labelText(l){
   const map={trivertido:'🟢 Trivertido',marketivo:'🔵 Marketivo',pessoal:'🩷 Pessoal',reuniao:'📅 Reunião',ideia:'💡 Ideia',critico:'⚠️ Crítico',urgente:'🔴 Urgente',sem_data:'📭 Sem data'};
   return map[l]||l;
 }
-function statusText(s){ return s==='feito'?'✅ Feito': s==='fazendo'?'🔄 Fazendo':'📌 A Fazer' }
-function nextStatus(s){ return s==='a_fazer'?'fazendo': s==='fazendo'?'feito':'a_fazer' }
-function priorityText(p){ return p==='atencao'?'🔴 Atenção': p==='regular'?'🟡 Regular':'🟢 Ótimo' }
-function nextPriority(p){ return p==='atencao'?'regular': p==='regular'?'otimo':'atencao' }
+function statusText(s){ return s==='feito'?'✅ Feito': s==='fazendo'?'🔄 Fazendo': s==='parado'?'⏸️ Parado':'📌 A Fazer' }
+function nextStatus(s){ return s==='a_fazer'?'fazendo': s==='fazendo'?'feito': s==='feito'?'parado':'a_fazer' }
+function priorityText(p){ return p==='critico'?'🔴 Crítico': p==='alta'?'🟠 Alta': p==='media'?'🟡 Média': p==='baixa'?'🟢 Baixa':'' }
+function nextPriority(p){ return p==='critico'?'alta': p==='alta'?'media': p==='media'?'baixa':'critico' }
 
 async function handleDelete(id){
   await deleteNoteById(id);
@@ -697,7 +736,7 @@ async function handleDelete(id){
 async function handleSetStatus(id, status){
   await setStatusById(id, status);
   renderAll();
-  toast(status==='feito'?'Tarefa concluída! ✅': status==='fazendo'?'Em andamento! 🔄':'Reaberta! 📌');
+  toast(status==='feito'?'Tarefa concluída! ✅': status==='fazendo'?'Em andamento! 🔄': status==='parado'?'Pausada ⏸️':'Reaberta! 📌');
 }
 async function handleSetPriority(id, priority){
   const n = notes.find(n=>n.id===id);
@@ -705,7 +744,7 @@ async function handleSetPriority(id, priority){
   n.priority = priority;
   if(db) await db.from('notes').update({ priority }).eq('id', id);
   renderAll();
-  toast(priority==='atencao'?'Atenção! 🔴': priority==='regular'?'Prazo regular 🟡':'Prazo ótimo 🟢');
+  toast(priority==='critico'?'Crítico! 🔴': priority==='alta'?'Alta prioridade 🟠': priority==='media'?'Prioridade média 🟡':'Baixa prioridade 🟢');
 }
 
 /* ═══════════════════════════════════════════
@@ -815,7 +854,7 @@ async function saveDrawing(){
   const canvas = document.getElementById('drawing-canvas');
   const img = canvas.toDataURL('image/png');
   const now = new Date();
-  const note = { date_key: dateKey(state.currentDate), text: null, drawing: img, label: state.label||null, time_label: fmt(now), done: false, status: 'a_fazer', priority: state.priority||null };
+  const note = { date_key: dateKey(state.currentDate), text: null, drawing: img, label: state.label||null, time_label: fmt(now), done: false, status: 'a_fazer', priority: state.priority||null, start_date: document.getElementById('start-date').value||null, end_date: document.getElementById('end-date').value||null };
   try {
     await saveNote(note);
     clearCanvas(); renderAll(); toast('Desenho salvo! 🎨');
@@ -827,7 +866,7 @@ async function convertToText(){
   const phrases = ['Reunião importante amanhã ✏️','Ligar para cliente 📞','Revisar proposta 📄','Lembrar de tomar água 💧','Confirmar evento do final de semana 🎉','Responder emails pendentes 📧','Preparar apresentação 💼','Compras do mercado 🛍️'];
   const txt = `✨ Convertido do desenho:\n"${phrases[Math.floor(Math.random()*phrases.length)]}"`;
   const now = new Date();
-  const note = { date_key: dateKey(state.currentDate), text: txt, drawing: null, label: state.label||null, time_label: fmt(now), done: false, status: 'a_fazer', priority: state.priority||null };
+  const note = { date_key: dateKey(state.currentDate), text: txt, drawing: null, label: state.label||null, time_label: fmt(now), done: false, status: 'a_fazer', priority: state.priority||null, start_date: document.getElementById('start-date').value||null, end_date: document.getElementById('end-date').value||null };
   try {
     await saveNote(note); clearCanvas(); renderAll(); toast('Desenho convertido! ✨');
   } catch(e){ toast('Erro ao salvar 😞'); console.error(e); }
@@ -836,7 +875,7 @@ async function saveTextNote(){
   const txt = document.getElementById('note-textarea').value.trim();
   if(!txt){ toast('Escreva algo primeiro! 📝'); return; }
   const now = new Date();
-  const note = { date_key: dateKey(state.currentDate), text: txt, drawing: null, label: state.label||null, time_label: fmt(now), done: false, status: 'a_fazer', priority: state.priority||null };
+  const note = { date_key: dateKey(state.currentDate), text: txt, drawing: null, label: state.label||null, time_label: fmt(now), done: false, status: 'a_fazer', priority: state.priority||null, start_date: document.getElementById('start-date').value||null, end_date: document.getElementById('end-date').value||null };
   try {
     await saveNote(note);
     document.getElementById('note-textarea').value='';
@@ -850,7 +889,7 @@ function toggleLabel(l){
 function togglePriority(p){
   state.priority = state.priority===p ? '' : p;
   document.querySelectorAll('.priority-btn').forEach(t=>{
-    const pl = t.classList.contains('atencao')?'atencao': t.classList.contains('regular')?'regular':'otimo';
+    const pl = ['critico','alta','media','baixa'].find(x=>t.classList.contains(x))||'';
     t.classList.toggle('selected', pl===state.priority);
   });
 }
