@@ -150,6 +150,14 @@ textarea.note-txt::placeholder{color:#d1b0d4}
 .status-badge.parado{background:#f1f5f9;color:#475569}
 .note-card.em-andamento{border-left-color:#3b82f6}
 .note-card.parado{border-left-color:#94a3b8}
+/* status dropdown */
+.status-dropdown{position:relative;display:inline-flex}
+.status-badge .caret{margin-left:4px;font-size:.58rem;opacity:.65}
+.status-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:60;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 22px rgba(0,0,0,.14);padding:4px;display:none;flex-direction:column;gap:2px;min-width:132px}
+.status-menu.open{display:flex}
+.status-menu button{display:flex;align-items:center;gap:6px;width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;font-family:'Quicksand',sans-serif;font-size:.72rem;font-weight:700;color:#334155;white-space:nowrap;transition:background .12s}
+.status-menu button:hover{background:#f1f5f9}
+.status-menu button.active{background:#eef2ff}
 
 /* ── PRIORITY SEMAPHORE ── */
 .priority-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
@@ -696,7 +704,12 @@ function noteCardHTML(n, actions=false){
   const drawing = n.drawing ? `<img class="note-drawing" src="${n.drawing}" alt="desenho">` : '';
   const st = n.status || (n.done ? 'feito' : 'a_fazer');
   const statusBadge = actions
-    ? `<button class="status-badge ${st}" onclick="handleSetStatus('${n.id}','${nextStatus(st)}')">${statusText(st)}</button>`
+    ? `<span class="status-dropdown">
+        <button class="status-badge ${st}" onclick="toggleStatusMenu(event,'${n.id}')">${statusText(st)}<span class="caret">▾</span></button>
+        <div class="status-menu" id="smenu-${n.id}">
+          ${['a_fazer','fazendo','feito','parado'].map(s=>`<button class="${s===st?'active':''}" onclick="handleSetStatus('${n.id}','${s}')">${statusText(s)}</button>`).join('')}
+        </div>
+      </span>`
     : `<span class="status-badge ${st}" style="cursor:default">${statusText(st)}</span>`;
   const pBadge = n.priority
     ? (actions
@@ -726,6 +739,17 @@ function labelText(l){
 }
 function statusText(s){ return s==='feito'?'✅ Feito': s==='fazendo'?'🔄 Fazendo': s==='parado'?'⏸️ Parado':'📌 A Fazer' }
 function nextStatus(s){ return s==='a_fazer'?'fazendo': s==='fazendo'?'feito': s==='feito'?'parado':'a_fazer' }
+function toggleStatusMenu(e, id){
+  e.stopPropagation();
+  const menu = document.getElementById('smenu-'+id);
+  if(!menu) return;
+  const wasOpen = menu.classList.contains('open');
+  document.querySelectorAll('.status-menu.open').forEach(m=>m.classList.remove('open'));
+  if(!wasOpen) menu.classList.add('open');
+}
+document.addEventListener('click', ()=>{
+  document.querySelectorAll('.status-menu.open').forEach(m=>m.classList.remove('open'));
+});
 function priorityText(p){ return p==='critico'?'🔴 Crítico': p==='alta'?'🟠 Alta': p==='media'?'🟡 Média': p==='baixa'?'🟢 Baixa':'' }
 function nextPriority(p){ return p==='critico'?'alta': p==='alta'?'media': p==='media'?'baixa':'critico' }
 
