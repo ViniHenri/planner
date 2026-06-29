@@ -155,6 +155,7 @@ textarea.note-txt::placeholder{color:#d1b0d4}
 .status-badge .caret{margin-left:4px;font-size:.58rem;opacity:.65}
 .status-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:60;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 22px rgba(0,0,0,.14);padding:4px;display:none;flex-direction:column;gap:2px;min-width:132px}
 .status-menu.open{display:flex}
+.note-card:has(.status-menu.open){z-index:50}
 .status-menu button{display:flex;align-items:center;gap:6px;width:100%;text-align:left;background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;font-family:'Quicksand',sans-serif;font-size:.72rem;font-weight:700;color:#334155;white-space:nowrap;transition:background .12s}
 .status-menu button:hover{background:#f1f5f9}
 .status-menu button.active{background:#eef2ff}
